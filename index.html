@@ -4,1058 +4,943 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>XAUUSD Demo Trading Game</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d26;
-      --surface2: #22263a;
-      --border: rgba(255,255,255,0.08);
-      --border2: rgba(255,255,255,0.14);
-      --text: #e8eaf0;
-      --text2: #9099b0;
-      --text3: #5a637a;
-      --green: #22c55e;
-      --green-bg: rgba(34,197,94,0.12);
-      --red: #ef4444;
-      --red-bg: rgba(239,68,68,0.12);
-      --blue: #3b82f6;
-      --blue-bg: rgba(59,130,246,0.1);
-      --amber: #f59e0b;
-      --radius: 10px;
-      --radius-sm: 6px;
+      --bg:#0f1117; --surface:#1a1d26; --surface2:#22263a;
+      --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
+      --text:#e8eaf0; --text2:#9099b0; --text3:#5a637a;
+      --green:#22c55e; --green-bg:rgba(34,197,94,0.12);
+      --red:#ef4444; --red-bg:rgba(239,68,68,0.12);
+      --blue:#3b82f6; --blue-bg:rgba(59,130,246,0.1);
+      --amber:#f59e0b; --radius:10px; --radius-sm:6px;
     }
+    body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:0.75rem; }
+    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem; }
+    .header-left { display:flex; align-items:center; gap:10px; }
+    .brand { font-size:1.2rem; font-weight:600; letter-spacing:-0.02em; }
+    .brand span { color:var(--amber); }
+    .badge { font-size:11px; font-weight:500; padding:3px 10px; border-radius:99px; background:var(--blue-bg); color:var(--blue); border:1px solid rgba(59,130,246,0.3); }
+    .header-stats { display:flex; gap:1.5rem; }
+    .stat-item { text-align:right; }
+    .stat-label { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.05em; }
+    .stat-value { font-size:1.05rem; font-weight:600; font-family:'JetBrains Mono',monospace; }
+    .main-grid { display:grid; grid-template-columns:1fr 224px; gap:8px; }
+    @media(max-width:700px){ .main-grid{grid-template-columns:1fr;} }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; }
+    .card-title { font-size:11px; font-weight:500; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; }
 
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 1rem;
-    }
+    /* chart toolbar */
+    .chart-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+    .price-display { display:flex; align-items:baseline; gap:8px; }
+    .price-main { font-family:'JetBrains Mono',monospace; font-size:1.35rem; font-weight:500; }
+    .price-change { font-size:12px; }
 
-    h1, h2, h3 { font-weight: 600; }
+    /* timeframe buttons */
+    .tf-row { display:flex; gap:3px; flex-wrap:wrap; }
+    .tf-btn {
+      font-size:10px; font-weight:600; padding:3px 8px;
+      border-radius:4px; cursor:pointer;
+      border:1px solid var(--border2); background:transparent; color:var(--text3);
+      transition:all 0.12s; letter-spacing:0.02em;
+    }
+    .tf-btn:hover { background:var(--surface2); color:var(--text); }
+    .tf-btn.active { background:rgba(59,130,246,0.18); color:var(--blue); border-color:rgba(59,130,246,0.4); }
 
-    /* ── Top Header ── */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    .header-left { display: flex; align-items: center; gap: 10px; }
-    .brand { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; }
-    .brand span { color: var(--amber); }
-    .badge {
-      font-size: 11px; font-weight: 500;
-      padding: 3px 10px; border-radius: 99px;
-      background: var(--blue-bg); color: var(--blue);
-      border: 1px solid rgba(59,130,246,0.3);
-    }
-    .header-stats { display: flex; gap: 1.5rem; }
-    .stat-item { text-align: right; }
-    .stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; }
-    .stat-value { font-size: 1.1rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    /* tool buttons */
+    .tools-row { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px; }
+    .tool-btn { font-size:10px; font-weight:500; padding:3px 9px; border-radius:4px; cursor:pointer; border:1px solid var(--border2); background:transparent; color:var(--text2); transition:all 0.12s; }
+    .tool-btn:hover { background:var(--surface2); color:var(--text); }
+    .tool-btn.active-fib { background:var(--blue-bg); color:var(--blue); border-color:rgba(59,130,246,0.4); }
+    .tool-btn.active-sr  { background:rgba(245,158,11,0.1); color:var(--amber); border-color:rgba(245,158,11,0.4); }
 
-    /* ── Layout ── */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 230px;
-      gap: 10px;
-    }
-    @media (max-width: 700px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
+    /* canvases */
+    .chart-wrap { position:relative; width:100%; height:320px; margin-bottom:4px; }
+    #candle-canvas { display:block; width:100%; height:100%; }
+    .rsi-wrap { position:relative; width:100%; height:100px; margin-top:4px; }
 
-    /* ── Card ── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 14px;
-    }
-    .card-title {
-      font-size: 12px; font-weight: 500; color: var(--text2);
-      text-transform: uppercase; letter-spacing: 0.06em;
-      margin-bottom: 10px;
-    }
+    /* indicator legend */
+    .ind-legend { display:flex; gap:12px; flex-wrap:wrap; font-size:10px; color:var(--text3); margin-bottom:3px; }
+    .ind-legend span { display:flex; align-items:center; gap:4px; }
+    .leg-line { width:20px; height:2px; display:inline-block; border-radius:1px; }
 
-    /* ── Chart area ── */
-    .chart-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 8px; flex-wrap: wrap; gap: 6px;
-    }
-    .price-display {
-      display: flex; align-items: baseline; gap: 8px;
-    }
-    .price-main {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 1.4rem; font-weight: 500;
-    }
-    .price-change { font-size: 12px; }
+    /* OHLC readout */
+    .ohlc-bar { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text3); margin-bottom:3px; height:14px; }
+    .ohlc-bar b { color:var(--text2); }
 
-    .tools-row { display: flex; gap: 6px; flex-wrap: wrap; }
-    .tool-btn {
-      font-size: 11px; font-weight: 500;
-      padding: 4px 10px; border-radius: var(--radius-sm);
-      cursor: pointer; border: 1px solid var(--border2);
-      background: transparent; color: var(--text2);
-      transition: all 0.15s;
+    /* trade controls */
+    .controls-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-top:6px; }
+    .control-group label { display:block; font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+    .control-group select, .control-group input {
+      width:100%; padding:6px 8px; background:var(--surface2); border:1px solid var(--border2);
+      color:var(--text); font-size:12px; font-family:'JetBrains Mono',monospace;
+      border-radius:var(--radius-sm); outline:none; transition:border-color 0.15s;
     }
-    .tool-btn:hover { background: var(--surface2); color: var(--text); }
-    .tool-btn.active-fib { background: var(--blue-bg); color: var(--blue); border-color: rgba(59,130,246,0.4); }
-    .tool-btn.active-sr { background: rgba(245,158,11,0.1); color: var(--amber); border-color: rgba(245,158,11,0.4); }
+    .control-group select:focus, .control-group input:focus { border-color:var(--blue); }
+    .btn-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+    .btn-buy,.btn-sell { padding:12px; font-size:14px; font-weight:600; border:none; border-radius:var(--radius-sm); cursor:pointer; letter-spacing:0.03em; transition:opacity 0.15s,transform 0.1s; }
+    .btn-buy  { background:rgba(34,197,94,0.2); color:var(--green); border:1px solid rgba(34,197,94,0.4); }
+    .btn-sell { background:rgba(239,68,68,0.2); color:var(--red);   border:1px solid rgba(239,68,68,0.4); }
+    .btn-buy:hover  { background:rgba(34,197,94,0.3); }
+    .btn-sell:hover { background:rgba(239,68,68,0.3); }
+    .btn-buy:active, .btn-sell:active { transform:scale(0.98); }
 
-    .chart-wrap { position: relative; width: 100%; height: 300px; margin-bottom: 8px; }
+    /* sidebar */
+    .sidebar { display:flex; flex-direction:column; gap:8px; }
+    .progress-bar-bg { height:7px; background:var(--surface2); border-radius:99px; overflow:hidden; margin:5px 0; }
+    .progress-bar-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--green),#86efac); border-radius:99px; transition:width 0.4s ease; }
+    .levels-list { display:flex; flex-direction:column; gap:3px; }
+    .level-item { font-size:11px; padding:4px 7px; border-radius:var(--radius-sm); display:flex; align-items:center; gap:5px; }
+    .level-item.active { background:var(--blue-bg); color:var(--blue); }
+    .level-item.done   { background:var(--green-bg); color:var(--green); }
+    .level-item.locked { background:var(--surface2); color:var(--text3); }
+    .trade-info { font-size:12px; color:var(--text2); line-height:1.7; }
+    .btn-close { width:100%; margin-top:7px; padding:7px; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-size:12px; font-weight:500; border-radius:var(--radius-sm); cursor:pointer; transition:background 0.15s; }
+    .btn-close:hover { background:var(--surface); border-color:var(--red); color:var(--red); }
+    .tip-box { font-size:11px; line-height:1.65; color:var(--text2); padding:8px; background:var(--surface2); border-left:2px solid var(--amber); border-radius:0 var(--radius-sm) var(--radius-sm) 0; }
 
-    .fib-legend {
-      display: flex; gap: 10px; flex-wrap: wrap;
-      font-size: 10px; color: var(--text3); margin-bottom: 8px;
-    }
-    .fib-legend span { display: flex; align-items: center; gap: 4px; }
-    .fib-dot { width: 20px; height: 1.5px; display: inline-block; }
+    /* history */
+    .history-wrap { max-height:110px; overflow-y:auto; font-size:11px; font-family:'JetBrains Mono',monospace; }
+    .history-row { display:flex; align-items:center; gap:7px; padding:3px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+    .history-row:last-child { border-bottom:none; }
+    .dir-tag { font-weight:600; font-size:10px; padding:1px 5px; border-radius:3px; }
+    .dir-buy  { background:var(--green-bg); color:var(--green); }
+    .dir-sell { background:var(--red-bg);   color:var(--red); }
 
-    /* ── Trade Controls ── */
-    .controls-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .control-group label {
-      display: block; font-size: 10px; color: var(--text3);
-      text-transform: uppercase; letter-spacing: 0.05em;
-      margin-bottom: 5px;
-    }
-    .control-group select,
-    .control-group input {
-      width: 100%; padding: 7px 10px;
-      background: var(--surface2); border: 1px solid var(--border2);
-      color: var(--text); font-size: 13px; font-family: 'JetBrains Mono', monospace;
-      border-radius: var(--radius-sm); outline: none;
-      transition: border-color 0.15s;
-    }
-    .control-group select:focus,
-    .control-group input:focus { border-color: var(--blue); }
-
-    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-    .btn-buy, .btn-sell {
-      padding: 13px; font-size: 14px; font-weight: 600;
-      border: none; border-radius: var(--radius-sm);
-      cursor: pointer; letter-spacing: 0.03em;
-      transition: opacity 0.15s, transform 0.1s;
-    }
-    .btn-buy { background: rgba(34,197,94,0.2); color: var(--green); border: 1px solid rgba(34,197,94,0.4); }
-    .btn-sell { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid rgba(239,68,68,0.4); }
-    .btn-buy:hover { background: rgba(34,197,94,0.3); }
-    .btn-sell:hover { background: rgba(239,68,68,0.3); }
-    .btn-buy:active, .btn-sell:active { transform: scale(0.98); }
-
-    /* ── Sidebar ── */
-    .sidebar { display: flex; flex-direction: column; gap: 8px; }
-
-    /* ── Progress ── */
-    .progress-bar-bg {
-      height: 8px; background: var(--surface2);
-      border-radius: 99px; overflow: hidden; margin: 6px 0;
-    }
-    .progress-bar-fill {
-      height: 100%; width: 0%;
-      background: linear-gradient(90deg, var(--green), #86efac);
-      border-radius: 99px;
-      transition: width 0.4s ease;
-    }
-
-    /* ── Levels list ── */
-    .levels-list { display: flex; flex-direction: column; gap: 4px; }
-    .level-item {
-      font-size: 11px; padding: 5px 8px;
-      border-radius: var(--radius-sm);
-      display: flex; align-items: center; gap: 6px;
-    }
-    .level-item.active { background: var(--blue-bg); color: var(--blue); }
-    .level-item.done { background: var(--green-bg); color: var(--green); }
-    .level-item.locked { background: var(--surface2); color: var(--text3); }
-
-    /* ── Open Trade ── */
-    .trade-info { font-size: 12px; color: var(--text2); line-height: 1.7; }
-    .btn-close {
-      width: 100%; margin-top: 8px; padding: 8px;
-      background: var(--surface2); border: 1px solid var(--border2);
-      color: var(--text); font-size: 12px; font-weight: 500;
-      border-radius: var(--radius-sm); cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-close:hover { background: var(--surface); border-color: var(--red); color: var(--red); }
-
-    /* ── Tip box ── */
-    .tip-box {
-      font-size: 11px; line-height: 1.65;
-      color: var(--text2); padding: 8px;
-      background: var(--surface2);
-      border-left: 2px solid var(--amber);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    }
-
-    /* ── History ── */
-    .history-wrap {
-      max-height: 120px; overflow-y: auto;
-      font-size: 11px; font-family: 'JetBrains Mono', monospace;
-    }
-    .history-row {
-      display: flex; align-items: center; gap: 8px;
-      padding: 4px 0;
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-    }
-    .history-row:last-child { border-bottom: none; }
-    .dir-tag {
-      font-weight: 600; font-size: 10px;
-      padding: 1px 6px; border-radius: 3px;
-    }
-    .dir-buy { background: var(--green-bg); color: var(--green); }
-    .dir-sell { background: var(--red-bg); color: var(--red); }
-
-    /* ── Modal ── */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.75);
-      z-index: 200; align-items: center; justify-content: center;
-    }
-    .modal-box {
-      background: var(--surface); border: 1px solid var(--border2);
-      border-radius: var(--radius); padding: 2rem;
-      max-width: 340px; width: 90%; text-align: center;
-    }
-    .modal-icon { font-size: 40px; margin-bottom: 10px; }
-    .modal-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
-    .modal-body { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.6; }
-    .btn-next {
-      padding: 10px 28px; font-size: 14px; font-weight: 600;
-      background: var(--green-bg); color: var(--green);
-      border: 1px solid rgba(34,197,94,0.4);
-      border-radius: var(--radius-sm); cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-next:hover { background: rgba(34,197,94,0.25); }
-
-    /* ── Footer ── */
-    .footer {
-      text-align: center; font-size: 10px; color: var(--text3);
-      margin-top: 12px;
-    }
-
-    /* ── RSI Panel ── */
-    .rsi-wrap { position: relative; width: 100%; height: 110px; margin-top: 6px; }
-    .rsi-label {
-      position: absolute; left: 0; top: 0;
-      font-size: 10px; color: var(--text3);
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .indicator-legend {
-      display: flex; gap: 14px; flex-wrap: wrap;
-      font-size: 10px; color: var(--text3);
-      margin-top: 4px; margin-bottom: 2px;
-    }
-    .indicator-legend span { display: flex; align-items: center; gap: 5px; }
-    .leg-line { width: 22px; height: 2px; display: inline-block; border-radius: 1px; }
-
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 99px; }
+    /* modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:200; align-items:center; justify-content:center; }
+    .modal-box { background:var(--surface); border:1px solid var(--border2); border-radius:var(--radius); padding:2rem; max-width:340px; width:90%; text-align:center; }
+    .modal-icon  { font-size:38px; margin-bottom:8px; }
+    .modal-title { font-size:1.1rem; font-weight:600; margin-bottom:8px; }
+    .modal-body  { font-size:13px; color:var(--text2); margin-bottom:18px; line-height:1.6; }
+    .btn-next { padding:10px 26px; font-size:14px; font-weight:600; background:var(--green-bg); color:var(--green); border:1px solid rgba(34,197,94,0.4); border-radius:var(--radius-sm); cursor:pointer; }
+    .btn-next:hover { background:rgba(34,197,94,0.25); }
+    .footer { text-align:center; font-size:10px; color:var(--text3); margin-top:10px; }
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-thumb { background:var(--surface2); border-radius:99px; }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <div class="header">
-    <div class="header-left">
-      <div class="brand">XAU<span>/USD</span> Trader</div>
-      <div class="badge" id="level-badge">Level 1</div>
+<div class="header">
+  <div class="header-left">
+    <div class="brand">XAU<span>/USD</span> Trader</div>
+    <div class="badge" id="level-badge">Level 1</div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-item">
+      <div class="stat-label">Balance</div>
+      <div class="stat-value" id="balance">$500.00</div>
     </div>
-    <div class="header-stats">
-      <div class="stat-item">
-        <div class="stat-label">Balance</div>
-        <div class="stat-value" id="balance">$500.00</div>
+    <div class="stat-item">
+      <div class="stat-label">Target</div>
+      <div class="stat-value" style="color:var(--green);" id="target-display">$1,000.00</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">P&amp;L</div>
+      <div class="stat-value" id="pnl">$0.00</div>
+    </div>
+  </div>
+</div>
+
+<div class="main-grid">
+  <div>
+    <div class="card" style="margin-bottom:8px;">
+
+      <!-- price + timeframes -->
+      <div class="chart-toolbar">
+        <div class="price-display">
+          <span style="font-size:12px;color:var(--text2);">XAU/USD ·</span>
+          <span class="price-main" id="current-price">2,342.50</span>
+          <span class="price-change" id="price-change" style="color:var(--green);">+0.00%</span>
+        </div>
+        <div class="tf-row" id="tf-row">
+          <button class="tf-btn active" onclick="setTF('1m')">1m</button>
+          <button class="tf-btn" onclick="setTF('5m')">5m</button>
+          <button class="tf-btn" onclick="setTF('15m')">15m</button>
+          <button class="tf-btn" onclick="setTF('30m')">30m</button>
+          <button class="tf-btn" onclick="setTF('1h')">1H</button>
+          <button class="tf-btn" onclick="setTF('4h')">4H</button>
+          <button class="tf-btn" onclick="setTF('1d')">1D</button>
+          <button class="tf-btn" onclick="setTF('1w')">1W</button>
+        </div>
       </div>
-      <div class="stat-item">
-        <div class="stat-label">Target</div>
-        <div class="stat-value" style="color:var(--green);" id="target-display">$1,000.00</div>
+
+      <!-- drawing tools -->
+      <div class="tools-row">
+        <button class="tool-btn" id="tool-fib" onclick="setTool('fib')">📐 Fib</button>
+        <button class="tool-btn" id="tool-sr"  onclick="setTool('sr')">⚡ S/R</button>
+        <button class="tool-btn" id="tool-trend" onclick="setTool('trend')">📈 Trend</button>
+        <button class="tool-btn" onclick="clearTools()">✕ Clear</button>
       </div>
-      <div class="stat-item">
-        <div class="stat-label">P&amp;L</div>
-        <div class="stat-value" id="pnl">$0.00</div>
+
+      <!-- OHLC readout on hover -->
+      <div class="ohlc-bar" id="ohlc-bar">&nbsp;</div>
+
+      <!-- candlestick canvas -->
+      <div class="chart-wrap">
+        <canvas id="candle-canvas" role="img" aria-label="XAUUSD candlestick chart"></canvas>
+      </div>
+
+      <!-- EMA legend -->
+      <div class="ind-legend">
+        <span><span class="leg-line" style="background:#f59e0b;"></span>EMA 9</span>
+        <span><span class="leg-line" style="background:#3b82f6;"></span>EMA 21</span>
+        <span><span class="leg-line" style="background:#a78bfa;"></span>EMA 50</span>
+        <span style="color:var(--border2);">|</span>
+        <span><span class="leg-line" style="background:#c0a030;"></span>Fib 0.382</span>
+        <span><span class="leg-line" style="background:#e05020;"></span>0.500</span>
+        <span><span class="leg-line" style="background:#c09030;"></span>0.618</span>
+      </div>
+
+      <!-- RSI -->
+      <div style="font-size:10px;color:var(--text3);margin-bottom:2px;font-family:'JetBrains Mono',monospace;">
+        RSI(14) — <span id="rsi-value" style="font-weight:600;color:var(--text2);">—</span>
+        <span id="rsi-signal" style="margin-left:8px;"></span>
+      </div>
+      <div class="rsi-wrap">
+        <canvas id="rsi-canvas" role="img" aria-label="RSI 14 indicator"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Place Trade</div>
+      <div class="controls-grid">
+        <div class="control-group">
+          <label>Lot Size</label>
+          <select id="lot-size">
+            <option value="0.01">0.01 Micro</option>
+            <option value="0.05">0.05</option>
+            <option value="0.10" selected>0.10 Mini</option>
+            <option value="0.50">0.50</option>
+            <option value="1.00">1.00 Std</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Stop Loss (pips)</label>
+          <input id="sl-pips" type="number" value="20" min="5" max="500" />
+        </div>
+        <div class="control-group">
+          <label>Take Profit (pips)</label>
+          <input id="tp-pips" type="number" value="40" min="5" max="1000" />
+        </div>
+      </div>
+      <div id="risk-preview" style="font-size:11px;color:var(--text3);margin-top:5px;font-family:'JetBrains Mono',monospace;"></div>
+      <div class="btn-row">
+        <button class="btn-buy"  onclick="placeTrade('BUY')">▲ BUY (Long)</button>
+        <button class="btn-sell" onclick="placeTrade('SELL')">▼ SELL (Short)</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:8px;">
+      <div class="card-title">Trade History</div>
+      <div class="history-wrap" id="trade-log">
+        <div style="color:var(--text3);font-size:11px;">No trades yet.</div>
       </div>
     </div>
   </div>
 
-  <!-- Main grid -->
-  <div class="main-grid">
-
-    <!-- Left: Chart + controls -->
-    <div>
-      <div class="card" style="margin-bottom:8px;">
-        <div class="chart-header">
-          <div class="price-display">
-            <span style="font-size:13px; color:var(--text2);">XAU/USD ·</span>
-            <span class="price-main" id="current-price">2,342.50</span>
-            <span class="price-change" id="price-change" style="color:var(--green);">+0.00%</span>
-          </div>
-          <div class="tools-row">
-            <button class="tool-btn" id="tool-fib" onclick="setTool('fib')">📐 Fib Retracement</button>
-            <button class="tool-btn" id="tool-sr" onclick="setTool('sr')">⚡ S/R Levels</button>
-            <button class="tool-btn" id="tool-trend" onclick="setTool('trend')">📈 Trend Line</button>
-            <button class="tool-btn" onclick="clearTools()">✕ Clear</button>
-          </div>
-        </div>
-
-        <div class="chart-wrap">
-          <canvas id="chart" role="img" aria-label="XAUUSD candlestick price chart with Fibonacci retracement overlay">XAUUSD candlestick chart</canvas>
-        </div>
-
-        <div class="indicator-legend">
-          <span><span class="leg-line" style="background:#f59e0b;"></span>EMA 9</span>
-          <span><span class="leg-line" style="background:#3b82f6;"></span>EMA 21</span>
-          <span><span class="leg-line" style="background:#a78bfa;"></span>EMA 50</span>
-          <span style="margin-left:8px; color:var(--text3);">|</span>
-          <span>Fib:</span>
-          <span><span class="fib-dot" style="background:#c0a030; height:1.5px; display:inline-block; width:20px;"></span>0.382</span>
-          <span><span class="fib-dot" style="background:#e05020; height:1.5px; display:inline-block; width:20px;"></span>0.500</span>
-          <span><span class="fib-dot" style="background:#b06820; height:1.5px; display:inline-block; width:20px;"></span>0.618</span>
-        </div>
-
-        <div style="font-size:10px; color:var(--text3); margin-bottom:3px; font-family:'JetBrains Mono',monospace;">
-          RSI(14) — <span id="rsi-value" style="font-weight:600; color:var(--text2);">—</span>
-          <span id="rsi-signal" style="margin-left:8px;"></span>
-        </div>
-        <div class="rsi-wrap">
-          <canvas id="rsi-chart" role="img" aria-label="RSI indicator chart showing overbought and oversold levels">RSI(14) momentum indicator</canvas>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Place Trade</div>
-        <div class="controls-grid">
-          <div class="control-group">
-            <label>Lot Size</label>
-            <select id="lot-size">
-              <option value="0.01">0.01 Micro</option>
-              <option value="0.05">0.05</option>
-              <option value="0.10" selected>0.10 Mini</option>
-              <option value="0.50">0.50</option>
-              <option value="1.00">1.00 Standard</option>
-            </select>
-          </div>
-          <div class="control-group">
-            <label>Stop Loss (pips)</label>
-            <input id="sl-pips" type="number" value="20" min="5" max="200" />
-          </div>
-          <div class="control-group">
-            <label>Take Profit (pips)</label>
-            <input id="tp-pips" type="number" value="40" min="5" max="400" />
-          </div>
-        </div>
-        <div id="risk-preview" style="font-size:11px; color:var(--text3); margin-top:6px; font-family:'JetBrains Mono',monospace;"></div>
-        <div class="btn-row">
-          <button class="btn-buy" onclick="placeTrade('BUY')">▲ BUY (Long)</button>
-          <button class="btn-sell" onclick="placeTrade('SELL')">▼ SELL (Short)</button>
-        </div>
-      </div>
-
-      <!-- History -->
-      <div class="card" style="margin-top:8px;">
-        <div class="card-title">Trade History</div>
-        <div class="history-wrap" id="trade-log">
-          <div style="color:var(--text3); font-size:11px;">No trades yet.</div>
-        </div>
+  <!-- sidebar -->
+  <div class="sidebar">
+    <div class="card">
+      <div class="card-title">Level Progress</div>
+      <div style="font-size:11px;color:var(--text2);">Balance → Target</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
+      <div id="progress-text" style="font-size:10px;color:var(--text3);margin-bottom:8px;">$0 of $500 to go</div>
+      <div class="levels-list" id="levels-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Open Position</div>
+      <div class="trade-info" id="open-trade">No open trade</div>
+      <div id="close-btn-wrap" style="display:none;">
+        <button class="btn-close" onclick="closeTrade()">Close Trade Manually</button>
       </div>
     </div>
-
-    <!-- Right: Sidebar -->
-    <div class="sidebar">
-      <div class="card">
-        <div class="card-title">Level Progress</div>
-        <div style="font-size:11px; color:var(--text2);">Balance → Target</div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
-        <div id="progress-text" style="font-size:10px; color:var(--text3); margin-bottom:10px;">$0 of $500 to go</div>
-        <div class="levels-list" id="levels-list"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Open Position</div>
-        <div class="trade-info" id="open-trade">No open trade</div>
-        <div id="close-btn-wrap" style="display:none;">
-          <button class="btn-close" onclick="closeTrade()">Close Trade Manually</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Skill Tip</div>
-        <div class="tip-box" id="skill-tip">Use the Fibonacci Retracement tool: select a swing high and swing low. Price often bounces at the 0.618 golden ratio level.</div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Risk Calculator</div>
-        <div style="font-size:11px; line-height:1.8; font-family:'JetBrains Mono',monospace; color:var(--text2);" id="risk-calc">
-          Lot: 0.10 mini<br>
-          Risk/trade: ~$2.00<br>
-          Reward: ~$4.00<br>
-          R:R Ratio: 1:2
-        </div>
+    <div class="card">
+      <div class="card-title">Skill Tip</div>
+      <div class="tip-box" id="skill-tip">Use Fibonacci Retracement: price often bounces at the 0.618 golden ratio level. Combine with RSI oversold for high-probability entries.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Risk Calculator</div>
+      <div style="font-size:11px;line-height:1.8;font-family:'JetBrains Mono',monospace;color:var(--text2);" id="risk-calc">
+        Lot: 0.10<br>Risk: ~$2.00<br>Reward: ~$4.00<br>R:R: 1:2
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Level Complete Modal -->
-  <div class="modal-overlay" id="level-modal">
-    <div class="modal-box">
-      <div class="modal-icon" id="modal-icon">🏆</div>
-      <div class="modal-title" id="modal-title">Level Complete!</div>
-      <div class="modal-body" id="modal-body"></div>
-      <button class="btn-next" onclick="nextLevel()" id="modal-btn">Next Level →</button>
-    </div>
+<div class="modal-overlay" id="level-modal">
+  <div class="modal-box">
+    <div class="modal-icon" id="modal-icon">🏆</div>
+    <div class="modal-title" id="modal-title">Level Complete!</div>
+    <div class="modal-body"  id="modal-body"></div>
+    <button class="btn-next" onclick="nextLevel()" id="modal-btn">Next Level →</button>
   </div>
+</div>
 
-  <div class="footer">Demo trading simulator · Not financial advice · Practice only</div>
+<div class="footer">Demo trading simulator · Not financial advice · Practice only</div>
 
 <script>
 Chart.register(window['chartjs-plugin-annotation']);
 
+// ── Constants ──────────────────────────────────────────
 const LEVELS = [
-  { level:1, startBalance:500,  target:1000,  label:'Lv1: $500 → $1,000'  },
-  { level:2, startBalance:1000, target:1500,  label:'Lv2: $1,000 → $1,500' },
-  { level:3, startBalance:1500, target:2000,  label:'Lv3: $1,500 → $2,000' },
-  { level:4, startBalance:2000, target:2500,  label:'Lv4: $2,000 → $2,500' },
-  { level:5, startBalance:2500, target:3000,  label:'Lv5: $2,500 → $3,000' },
+  {level:1,startBalance:500, target:1000,label:'Lv1: $500 → $1,000'},
+  {level:2,startBalance:1000,target:1500,label:'Lv2: $1,000 → $1,500'},
+  {level:3,startBalance:1500,target:2000,label:'Lv3: $1,500 → $2,000'},
+  {level:4,startBalance:2000,target:2500,label:'Lv4: $2,000 → $2,500'},
+  {level:5,startBalance:2500,target:3000,label:'Lv5: $2,500 → $3,000'},
 ];
+
+const TIMEFRAMES = {
+  '1m': {label:'1m', ms:60000,      candleMs:2000,   volatility:1.2, candleCount:80},
+  '5m': {label:'5m', ms:300000,     candleMs:4000,   volatility:2.0, candleCount:80},
+  '15m':{label:'15m',ms:900000,     candleMs:5000,   volatility:3.5, candleCount:80},
+  '30m':{label:'30m',ms:1800000,    candleMs:6000,   volatility:5.0, candleCount:70},
+  '1h': {label:'1H', ms:3600000,    candleMs:7000,   volatility:8.0, candleCount:70},
+  '4h': {label:'4H', ms:14400000,   candleMs:8000,   volatility:16,  candleCount:60},
+  '1d': {label:'1D', ms:86400000,   candleMs:10000,  volatility:30,  candleCount:60},
+  '1w': {label:'1W', ms:604800000,  candleMs:12000,  volatility:80,  candleCount:52},
+};
 
 const TIPS = [
-  'Fibonacci 0.618 is the golden ratio — price most often bounces here in trending markets on gold.',
-  'Never risk more than 1–2% of your account on a single trade. Preserve capital first.',
-  'After hitting 0.382 or 0.618 Fib, watch for a candlestick confirmation before entering.',
-  'Support and resistance: when price breaks through support, that level often becomes new resistance.',
-  'Aim for at least 1:2 risk/reward — your TP should be at least 2× your SL distance.',
-  'Higher timeframe S/R levels are stronger than lower timeframe levels.',
-  'Consolidation near a Fib level often signals a major move is brewing.',
-  'Gold (XAUUSD) is sensitive to USD strength. A stronger USD typically pushes gold lower.',
-  'Never add to a losing trade. Cut losses quickly and let profits run.',
-  'The 0.500 Fib level (50%) acts as a psychological support/resistance even without strict math.',
-  'EMA crossover: when EMA 9 crosses above EMA 21, it signals a potential uptrend (bullish). Opposite for downtrend.',
-  'RSI above 70 = overbought — price may reverse down. RSI below 30 = oversold — price may bounce up.',
-  'Use EMA 50 as the trend filter: only take BUY signals when price is above EMA 50.',
-  'RSI divergence: if price makes a new high but RSI does not, a reversal may be coming.',
-  'EMA 9 reacting fast to price changes makes it great for entries; EMA 50 is slow and shows the big trend.',
+  'Fib 0.618 is the golden ratio — price most often bounces here on gold.',
+  'Never risk more than 1–2% of your account on a single trade.',
+  'RSI above 70 = overbought. RSI below 30 = oversold. Trade the bounce.',
+  'EMA crossover: EMA 9 crossing above EMA 21 signals a bullish trend shift.',
+  'On the 1H and 4H charts, S/R levels carry much more weight than on 1m.',
+  'Fib + RSI oversold on the same candle = high-probability long setup.',
+  'The 0.500 Fib is a psychological level — traders always watch it.',
+  'EMA 50 is the trend filter: only go long above it, only go short below it.',
+  'Wider timeframes (4H, 1D) show the bigger picture. Trade in that direction.',
+  'RSI divergence: price makes new high but RSI doesn\'t = reversal warning.',
+  'Gold moves 24/5. Biggest moves happen during London and NY session overlap.',
+  'Consolidation near Fib 0.618 often explodes into a trending move.',
 ];
 
+// ── State ──────────────────────────────────────────────
 let currentLevel = 0;
-let balance = LEVELS[0].startBalance;
-let baseBalance = balance;
-let openTrade = null;
+let balance      = LEVELS[0].startBalance;
+let baseBalance  = balance;
+let openTrade    = null;
 let tradeHistory = [];
 let currentPrice = 2342.50;
-let basePrice = currentPrice;
-let activeTool = null;
-let fibLines = [];
-let srLines = [];
-let candleData = [];
-let myChart = null;
-let rsiChart = null;
-let tipIndex = 0;
+let basePrice    = currentPrice;
+let activeTool   = null;
+let fibLines     = [];
+let srLines      = [];
+let candleData   = [];    // master tick store per TF
+let tfData       = {};    // { '1m': [...], '5m': [...], ... }
+let currentTF    = '1m';
+let tipIndex     = 0;
+let tickTimer    = null;
+let rsiChartObj  = null;
 
-function fmt(n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
-function fmtP(n) { return (n >= 0 ? '+' : '') + fmt(n); }
+// canvas refs
+let cc, cx; // candlestick canvas + context
 
-// ── EMA calculation ──
+// ── Helpers ─────────────────────────────────────────────
+function fmt(n)  { return '$'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function fmtP(n) { return (n>=0?'+':'')+fmt(n); }
+
+// ── EMA & RSI ──────────────────────────────────────────
 function calcEMA(closes, period) {
-  if (closes.length < period) return closes.map(() => null);
-  const k = 2 / (period + 1);
-  const result = closes.map(() => null);
-  let ema = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  result[period - 1] = +ema.toFixed(2);
-  for (let i = period; i < closes.length; i++) {
-    ema = closes[i] * k + ema * (1 - k);
-    result[i] = +ema.toFixed(2);
+  const k = 2/(period+1), out = closes.map(()=>null);
+  if (closes.length < period) return out;
+  let ema = closes.slice(0,period).reduce((a,b)=>a+b,0)/period;
+  out[period-1] = +ema.toFixed(3);
+  for (let i=period; i<closes.length; i++) {
+    ema = closes[i]*k + ema*(1-k);
+    out[i] = +ema.toFixed(3);
   }
-  return result;
+  return out;
 }
 
-// ── RSI calculation ──
-function calcRSI(closes, period = 14) {
-  const result = closes.map(() => null);
-  if (closes.length < period + 1) return result;
-  let gains = 0, losses = 0;
-  for (let i = 1; i <= period; i++) {
-    const diff = closes[i] - closes[i - 1];
-    if (diff > 0) gains += diff; else losses -= diff;
+function calcRSI(closes, period=14) {
+  const out = closes.map(()=>null);
+  if (closes.length < period+1) return out;
+  let gains=0, losses=0;
+  for (let i=1;i<=period;i++) {
+    const d = closes[i]-closes[i-1];
+    if(d>0) gains+=d; else losses-=d;
   }
-  let avgGain = gains / period;
-  let avgLoss = losses / period;
-  const rs0 = avgLoss === 0 ? 100 : avgGain / avgLoss;
-  result[period] = +(100 - 100 / (1 + rs0)).toFixed(2);
-  for (let i = period + 1; i < closes.length; i++) {
-    const diff = closes[i] - closes[i - 1];
-    avgGain = (avgGain * (period - 1) + Math.max(diff, 0)) / period;
-    avgLoss = (avgLoss * (period - 1) + Math.max(-diff, 0)) / period;
-    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-    result[i] = +(100 - 100 / (1 + rs)).toFixed(2);
+  let ag=gains/period, al=losses/period;
+  out[period] = +(100 - 100/(1+(al===0?Infinity:ag/al))).toFixed(2);
+  for (let i=period+1; i<closes.length; i++) {
+    const d = closes[i]-closes[i-1];
+    ag = (ag*(period-1)+Math.max(d,0))/period;
+    al = (al*(period-1)+Math.max(-d,0))/period;
+    out[i] = +(100 - 100/(1+(al===0?Infinity:ag/al))).toFixed(2);
   }
-  return result;
+  return out;
 }
 
-// Generate candle history
-function generateCandles(base, count) {
-  let candles = [], p = base;
+// ── Candle Generation ──────────────────────────────────
+function generateCandles(base, count, vol, intervalMs) {
   const now = Date.now();
-  for (let i = count; i >= 0; i--) {
-    const open = p;
-    const move = (Math.random() - 0.478) * 4;
-    const high = open + Math.abs(move) * (0.5 + Math.random());
-    const low  = open - Math.abs(move) * (0.5 + Math.random());
-    const close = open + move;
-    candles.push({
-      t: now - i * 300000,
-      o: +open.toFixed(2), h: +high.toFixed(2),
-      l: +low.toFixed(2),  c: +close.toFixed(2)
-    });
-    p = close;
+  let p = base, candles = [];
+  for (let i=count; i>=0; i--) {
+    const o = p;
+    const move = (Math.random()-0.478)*vol;
+    const high = o + Math.abs(move)*(0.4+Math.random()*0.8) + Math.random()*vol*0.2;
+    const low  = o - Math.abs(move)*(0.4+Math.random()*0.8) - Math.random()*vol*0.2;
+    const c = +(o+move).toFixed(2);
+    candles.push({t:now-i*intervalMs, o:+o.toFixed(2), h:+high.toFixed(2), l:+low.toFixed(2), c});
+    p = c;
   }
   return candles;
 }
 
-function buildChart() {
-  candleData = generateCandles(basePrice, 70);
-  currentPrice = candleData[candleData.length - 1].c;
-  renderChart();
-  updatePriceDisplay();
-}
-
-function renderChart() {
-  const ctx = document.getElementById('chart');
-  if (myChart) myChart.destroy();
-  ctx.style.height = '300px';
-
-  const labels = candleData.map(c =>
-    new Date(c.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  );
-  const closes = candleData.map(c => c.c);
-  const bull = 'rgba(34,197,94,0.85)';
-  const bear = 'rgba(239,68,68,0.85)';
-  const barColors = candleData.map(c => c.c >= c.o ? bull : bear);
-
-  const ema9  = calcEMA(closes, 9);
-  const ema21 = calcEMA(closes, 21);
-  const ema50 = calcEMA(closes, 50);
-
-  const annotations = buildAnnotations();
-
-  myChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Candle Range',
-          data: candleData.map(c => [c.l, c.h]),
-          backgroundColor: barColors,
-          borderColor: barColors,
-          borderWidth: 1,
-          barPercentage: 0.35,
-          categoryPercentage: 0.5,
-          order: 3,
-        },
-        {
-          label: 'EMA 9',
-          type: 'line',
-          data: ema9,
-          borderColor: '#f59e0b',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.3,
-          spanGaps: false,
-          order: 1,
-        },
-        {
-          label: 'EMA 21',
-          type: 'line',
-          data: ema21,
-          borderColor: '#3b82f6',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.3,
-          spanGaps: false,
-          order: 1,
-        },
-        {
-          label: 'EMA 50',
-          type: 'line',
-          data: ema50,
-          borderColor: '#a78bfa',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.3,
-          spanGaps: false,
-          order: 1,
-        },
-        {
-          label: 'Close',
-          type: 'line',
-          data: closes,
-          borderColor: 'rgba(148,163,184,0.25)',
-          borderWidth: 1,
-          pointRadius: 0,
-          tension: 0.1,
-          order: 2,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        annotation: { annotations },
-        tooltip: {
-          backgroundColor: '#1a1d26',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          titleColor: '#9099b0',
-          bodyColor: '#e8eaf0',
-          callbacks: {
-            label(ctx) {
-              if (ctx.datasetIndex === 0) {
-                const c = candleData[ctx.dataIndex];
-                return ` O:${c.o}  H:${c.h}  L:${c.l}  C:${c.c}`;
-              }
-              if (ctx.datasetIndex === 1) return ` EMA9: ${ctx.raw ?? '—'}`;
-              if (ctx.datasetIndex === 2) return ` EMA21: ${ctx.raw ?? '—'}`;
-              if (ctx.datasetIndex === 3) return ` EMA50: ${ctx.raw ?? '—'}`;
-              return null;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#5a637a', font: { size: 9 }, maxTicksLimit: 8 },
-          grid: { color: 'rgba(255,255,255,0.04)' }
-        },
-        y: {
-          position: 'right',
-          ticks: { color: '#5a637a', font: { size: 9, family: "'JetBrains Mono', monospace" } },
-          grid: { color: 'rgba(255,255,255,0.04)' }
-        }
-      }
-    }
-  });
-
-  renderRSI(labels, closes);
-}
-
-function renderRSI(labels, closes) {
-  const rsiCtx = document.getElementById('rsi-chart');
-  if (rsiChart) rsiChart.destroy();
-
-  const rsiData = calcRSI(closes, 14);
-  const lastRsi = [...rsiData].reverse().find(v => v !== null);
-
-  // Update RSI readout
-  if (lastRsi !== null) {
-    document.getElementById('rsi-value').textContent = lastRsi.toFixed(1);
-    const sig = document.getElementById('rsi-signal');
-    if (lastRsi >= 70) { sig.textContent = '⚠ Overbought'; sig.style.color = '#ef4444'; }
-    else if (lastRsi <= 30) { sig.textContent = '⚠ Oversold'; sig.style.color = '#22c55e'; }
-    else { sig.textContent = 'Neutral'; sig.style.color = '#5a637a'; }
+function initAllTF() {
+  tfData = {};
+  const tf1m = generateCandles(basePrice, 200, TIMEFRAMES['1m'].volatility, TIMEFRAMES['1m'].ms);
+  tfData['1m'] = tf1m;
+  // build higher TFs by aggregating 1m candles
+  const tfDefs = [
+    ['5m',5],['15m',15],['30m',30],['1h',60],['4h',240],['1d',1440],['1w',10080]
+  ];
+  for (const [key, mins] of tfDefs) {
+    tfData[key] = aggregateCandles(tf1m, mins);
   }
+  candleData = tfData[currentTF].slice(-TIMEFRAMES[currentTF].candleCount);
+  currentPrice = candleData[candleData.length-1].c;
+}
 
-  // Color RSI line: red when >70, green when <30, blue otherwise
-  const rsiColors = rsiData.map(v => {
-    if (v === null) return 'rgba(99,102,241,0.8)';
-    if (v >= 70) return 'rgba(239,68,68,0.9)';
-    if (v <= 30) return 'rgba(34,197,94,0.9)';
-    return 'rgba(99,102,241,0.8)';
-  });
-
-  rsiChart = new Chart(rsiCtx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'RSI(14)',
-        data: rsiData,
-        borderColor: 'rgba(99,102,241,0.9)',
-        borderWidth: 1.5,
-        pointRadius: 0,
-        tension: 0.3,
-        spanGaps: false,
-        fill: {
-          target: { value: 70 },
-          above: 'rgba(239,68,68,0.15)',
-        },
-        segment: {
-          borderColor: ctx => {
-            const v = ctx.p1.parsed.y;
-            if (v >= 70) return 'rgba(239,68,68,0.9)';
-            if (v <= 30) return 'rgba(34,197,94,0.9)';
-            return 'rgba(99,102,241,0.85)';
-          }
-        }
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        annotation: {
-          annotations: {
-            ob: { type:'line', yMin:70, yMax:70, borderColor:'rgba(239,68,68,0.45)', borderWidth:1, borderDash:[4,4], label:{display:true, content:'70', position:'end', color:'rgba(239,68,68,0.7)', font:{size:8}, backgroundColor:'transparent'} },
-            mid: { type:'line', yMin:50, yMax:50, borderColor:'rgba(255,255,255,0.08)', borderWidth:1, borderDash:[2,4] },
-            os: { type:'line', yMin:30, yMax:30, borderColor:'rgba(34,197,94,0.45)', borderWidth:1, borderDash:[4,4], label:{display:true, content:'30', position:'end', color:'rgba(34,197,94,0.7)', font:{size:8}, backgroundColor:'transparent'} },
-          }
-        },
-        tooltip: {
-          backgroundColor: '#1a1d26',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          titleColor: '#9099b0',
-          bodyColor: '#e8eaf0',
-          callbacks: { label: ctx => ctx.raw !== null ? ` RSI: ${ctx.raw}` : null }
-        }
-      },
-      scales: {
-        x: { display: false },
-        y: {
-          min: 0, max: 100,
-          position: 'right',
-          ticks: { color: '#5a637a', font: { size: 8 }, stepSize: 25 },
-          grid: { color: 'rgba(255,255,255,0.04)' }
-        }
-      }
+function aggregateCandles(src, groupMins) {
+  // group 1m candles into higher timeframe bars
+  const grouped = [];
+  const groupMs = groupMins * 60000;
+  if (src.length === 0) return grouped;
+  let bucketStart = Math.floor(src[0].t / groupMs) * groupMs;
+  let o=null,h=-Infinity,l=Infinity,c=null,t=bucketStart;
+  for (const bar of src) {
+    const bkt = Math.floor(bar.t / groupMs) * groupMs;
+    if (bkt !== bucketStart) {
+      if (o !== null) grouped.push({t:bucketStart,o,h:+h.toFixed(2),l:+l.toFixed(2),c});
+      bucketStart=bkt; o=bar.o; h=bar.h; l=bar.l; c=bar.c;
+    } else {
+      if (o===null) o=bar.o;
+      h=Math.max(h,bar.h); l=Math.min(l,bar.l); c=bar.c;
     }
-  });
-}
-
-function buildAnnotations() {
-  const a = {};
-  const fibRatios  = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
-  const fibColors  = ['#888','#c0a030','#b06820','#e05020','#b06820','#c0a030','#888'];
-
-  fibLines.forEach((fl, fi) => {
-    const range = fl.high - fl.low;
-    fibRatios.forEach((r, i) => {
-      const price = +(fl.low + range * r).toFixed(2);
-      a[`fib_${fi}_${i}`] = {
-        type: 'line', yMin: price, yMax: price,
-        borderColor: fibColors[i], borderWidth: 1.2, borderDash: [5, 4],
-        label: { display: true, content: `${r} — ${price}`, position: 'end', color: fibColors[i], font: { size: 9 }, backgroundColor: 'transparent' }
-      };
-    });
-  });
-
-  srLines.forEach((s, i) => {
-    a[`sr_${i}`] = {
-      type: 'line', yMin: s, yMax: s,
-      borderColor: 'rgba(59,130,246,0.6)', borderWidth: 1.2, borderDash: [6, 4],
-      label: { display: true, content: `S/R ${s}`, position: 'start', color: '#3b82f6', font: { size: 9 }, backgroundColor: 'transparent' }
-    };
-  });
-
-  if (openTrade) {
-    a.entry = { type:'line', yMin:openTrade.entry, yMax:openTrade.entry, borderColor:'rgba(148,163,184,0.5)', borderWidth:1, borderDash:[3,3], label:{display:true, content:`Entry ${openTrade.entry}`, position:'end', color:'#94a3b8', font:{size:9}, backgroundColor:'transparent'} };
-    a.tp    = { type:'line', yMin:openTrade.tp,    yMax:openTrade.tp,    borderColor:'rgba(34,197,94,0.8)',   borderWidth:1.5, label:{display:true, content:`TP ${openTrade.tp}`, position:'end', color:'#22c55e', font:{size:9}, backgroundColor:'transparent'} };
-    a.sl    = { type:'line', yMin:openTrade.sl,    yMax:openTrade.sl,    borderColor:'rgba(239,68,68,0.8)',   borderWidth:1.5, label:{display:true, content:`SL ${openTrade.sl}`, position:'end', color:'#ef4444', font:{size:9}, backgroundColor:'transparent'} };
   }
-  return a;
+  if (o!==null) grouped.push({t:bucketStart,o,h:+h.toFixed(2),l:+l.toFixed(2),c});
+  return grouped;
 }
 
-function refreshAnnotations() {
-  if (!myChart) return;
-  myChart.options.plugins.annotation.annotations = buildAnnotations();
-  myChart.update('none');
+// ── Timeframe Switch ───────────────────────────────────
+function setTF(tf) {
+  currentTF = tf;
+  document.querySelectorAll('.tf-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === TIMEFRAMES[tf].label);
+  });
+  candleData = tfData[tf].slice(-TIMEFRAMES[tf].candleCount);
+  clearTools();
+  drawChart();
+  drawRSI();
 }
 
-// Live price simulation
-function addNewCandle() {
-  const last = candleData[candleData.length - 1];
-  const move = (Math.random() - 0.478) * 2.8;
-  const open  = last.c;
-  const close = +(open + move).toFixed(2);
-  const high  = +(Math.max(open, close) + Math.random() * 1.8).toFixed(2);
-  const low   = +(Math.min(open, close) - Math.random() * 1.8).toFixed(2);
-  candleData.push({ t: Date.now(), o: open, h: high, l: low, c: close });
-  if (candleData.length > 90) candleData.shift();
-  currentPrice = close;
+// ── Tick: add new 1m candle + propagate ────────────────
+function tick() {
+  const tf = TIMEFRAMES['1m'];
+  const src = tfData['1m'];
+  const last = src[src.length-1];
+  const vol = tf.volatility;
+  const move = (Math.random()-0.478)*vol;
+  const o = last.c;
+  const c = +(o+move).toFixed(2);
+  const h = +(Math.max(o,c)+Math.random()*vol*0.3).toFixed(2);
+  const l = +(Math.min(o,c)-Math.random()*vol*0.3).toFixed(2);
+  const newBar = {t:Date.now(), o, h, l, c};
+  src.push(newBar);
+  if (src.length > 500) src.shift();
+
+  // re-aggregate all higher TFs
+  const tfDefs=[['5m',5],['15m',15],['30m',30],['1h',60],['4h',240],['1d',1440],['1w',10080]];
+  for (const [key,mins] of tfDefs) tfData[key] = aggregateCandles(src, mins);
+
+  // update current view
+  candleData = tfData[currentTF].slice(-TIMEFRAMES[currentTF].candleCount);
+  currentPrice = c;
   updatePriceDisplay();
-  updateChartData();
+  drawChart();
+  drawRSI();
   updateOpenTradePnL();
   checkTpSl();
   updateRiskPreview();
 }
 
-function updateChartData() {
-  if (!myChart) return;
-  const labels = candleData.map(c => new Date(c.t).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
-  const closes = candleData.map(c => c.c);
-  const bull = 'rgba(34,197,94,0.85)', bear = 'rgba(239,68,68,0.85)';
+// ── Canvas Candlestick Chart ───────────────────────────
+const BULL = '#22c55e', BEAR = '#ef4444';
+const BULL_BODY = 'rgba(34,197,94,0.85)', BEAR_BODY = 'rgba(239,68,68,0.85)';
+const GRID = 'rgba(255,255,255,0.05)';
+const TEXT_C = '#5a637a';
 
-  const ema9  = calcEMA(closes, 9);
-  const ema21 = calcEMA(closes, 21);
-  const ema50 = calcEMA(closes, 50);
+function drawChart() {
+  if (!cc || !cx) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = cc.clientWidth, H = cc.clientHeight;
+  cc.width = W*dpr; cc.height = H*dpr;
+  cx.scale(dpr, dpr);
 
-  myChart.data.labels = labels;
-  myChart.data.datasets[0].data = candleData.map(c => [c.l, c.h]);
-  myChart.data.datasets[0].backgroundColor = candleData.map(c => c.c >= c.o ? bull : bear);
-  myChart.data.datasets[0].borderColor = candleData.map(c => c.c >= c.o ? bull : bear);
-  myChart.data.datasets[1].data = ema9;
-  myChart.data.datasets[2].data = ema21;
-  myChart.data.datasets[3].data = ema50;
-  myChart.data.datasets[4].data = closes;
-  myChart.options.plugins.annotation.annotations = buildAnnotations();
-  myChart.update('none');
+  const PAD_L=8, PAD_R=62, PAD_T=12, PAD_B=22;
+  const chartW = W-PAD_L-PAD_R;
+  const chartH = H-PAD_T-PAD_B;
 
-  // Update RSI live
-  const rsiData = calcRSI(closes, 14);
-  const lastRsi = [...rsiData].reverse().find(v => v !== null);
-  if (lastRsi !== null && rsiChart) {
-    rsiChart.data.labels = labels;
-    rsiChart.data.datasets[0].data = rsiData;
-    rsiChart.update('none');
+  const closes = candleData.map(c=>c.c);
+  const ema9  = calcEMA(closes,9);
+  const ema21 = calcEMA(closes,21);
+  const ema50 = calcEMA(closes,50);
+
+  // price range with padding
+  let minP = Infinity, maxP = -Infinity;
+  for (const c of candleData) { minP=Math.min(minP,c.l); maxP=Math.max(maxP,c.h); }
+  // include TP/SL in range
+  if (openTrade) {
+    minP=Math.min(minP,openTrade.sl,openTrade.tp);
+    maxP=Math.max(maxP,openTrade.sl,openTrade.tp);
+  }
+  const pRange = maxP-minP || 1;
+  const pad = pRange*0.06;
+  const vMin=minP-pad, vMax=maxP+pad, vRange=vMax-vMin;
+
+  function py(price) { return PAD_T + chartH*(1-(price-vMin)/vRange); }
+  function px(i)     { return PAD_L + (i+0.5)*(chartW/candleData.length); }
+
+  // background
+  cx.clearRect(0,0,W,H);
+
+  // grid lines
+  const gridSteps = 5;
+  cx.strokeStyle = GRID; cx.lineWidth=0.5;
+  for (let i=0;i<=gridSteps;i++) {
+    const price = vMin + (vRange/gridSteps)*i;
+    const y = py(price);
+    cx.beginPath(); cx.moveTo(PAD_L,y); cx.lineTo(W-PAD_R,y); cx.stroke();
+    cx.fillStyle=TEXT_C; cx.font='9px JetBrains Mono,monospace'; cx.textAlign='left';
+    cx.fillText(price.toFixed(2), W-PAD_R+4, y+3);
+  }
+
+  // fib lines
+  for (const fl of fibLines) {
+    const range = fl.high-fl.low;
+    const fibs = [{r:0,c:'#888'},{r:0.236,c:'#c0a030'},{r:0.382,c:'#c0a030'},{r:0.5,c:'#e05020'},{r:0.618,c:'#c09030'},{r:0.786,c:'#c0a030'},{r:1,c:'#888'}];
+    for (const f of fibs) {
+      const price = fl.low + range*f.r;
+      const y = py(price);
+      cx.strokeStyle=f.c; cx.lineWidth=1; cx.setLineDash([5,4]);
+      cx.beginPath(); cx.moveTo(PAD_L,y); cx.lineTo(W-PAD_R,y); cx.stroke();
+      cx.fillStyle=f.c; cx.font='9px Inter,sans-serif'; cx.textAlign='right';
+      cx.fillText(f.r.toFixed(3)+' '+price.toFixed(2), W-PAD_R-2, y-2);
+      cx.setLineDash([]);
+    }
+  }
+
+  // S/R lines
+  cx.setLineDash([6,4]);
+  for (const s of srLines) {
+    const y = py(s);
+    cx.strokeStyle='rgba(59,130,246,0.55)'; cx.lineWidth=1.2;
+    cx.beginPath(); cx.moveTo(PAD_L,y); cx.lineTo(W-PAD_R,y); cx.stroke();
+    cx.fillStyle='#3b82f6'; cx.font='9px Inter,sans-serif'; cx.textAlign='right';
+    cx.fillText('S/R '+s.toFixed(2), W-PAD_R-2, y-2);
+  }
+  cx.setLineDash([]);
+
+  // TP / SL / Entry lines
+  if (openTrade) {
+    const lines = [
+      {price:openTrade.tp,    color:'rgba(34,197,94,0.9)',  dash:[],    label:'TP '+openTrade.tp},
+      {price:openTrade.sl,    color:'rgba(239,68,68,0.9)',  dash:[],    label:'SL '+openTrade.sl},
+      {price:openTrade.entry, color:'rgba(148,163,184,0.6)',dash:[3,3], label:'Entry '+openTrade.entry},
+    ];
+    for (const ln of lines) {
+      const y = py(ln.price);
+      cx.setLineDash(ln.dash); cx.strokeStyle=ln.color; cx.lineWidth=1.4;
+      cx.beginPath(); cx.moveTo(PAD_L,y); cx.lineTo(W-PAD_R,y); cx.stroke();
+      cx.fillStyle=ln.color; cx.font='bold 9px Inter,sans-serif'; cx.textAlign='left';
+      cx.fillText(ln.label, PAD_L+2, y-3);
+      cx.setLineDash([]);
+    }
+  }
+
+  // candles
+  const candleW = Math.max(1, chartW/candleData.length*0.6);
+  for (let i=0; i<candleData.length; i++) {
+    const c = candleData[i];
+    const x = px(i);
+    const isBull = c.c >= c.o;
+    const color = isBull ? BULL : BEAR;
+    const bodyColor = isBull ? BULL_BODY : BEAR_BODY;
+
+    // wick
+    cx.strokeStyle = color; cx.lineWidth = 1;
+    cx.beginPath();
+    cx.moveTo(x, py(c.h));
+    cx.lineTo(x, py(c.l));
+    cx.stroke();
+
+    // body
+    const bodyTop = py(Math.max(c.o,c.c));
+    const bodyBot = py(Math.min(c.o,c.c));
+    const bodyH   = Math.max(1, bodyBot-bodyTop);
+    cx.fillStyle = bodyColor;
+    cx.fillRect(x-candleW/2, bodyTop, candleW, bodyH);
+
+    // body border
+    cx.strokeStyle = color; cx.lineWidth = 0.5;
+    cx.strokeRect(x-candleW/2, bodyTop, candleW, bodyH);
+  }
+
+  // EMA lines
+  function drawEMA(data, color) {
+    cx.strokeStyle=color; cx.lineWidth=1.4; cx.beginPath();
+    let started=false;
+    for (let i=0;i<data.length;i++) {
+      if (data[i]===null) continue;
+      const x=px(i), y=py(data[i]);
+      if (!started) { cx.moveTo(x,y); started=true; } else cx.lineTo(x,y);
+    }
+    cx.stroke();
+  }
+  drawEMA(ema9,  '#f59e0b');
+  drawEMA(ema21, '#3b82f6');
+  drawEMA(ema50, '#a78bfa');
+
+  // x-axis labels
+  cx.fillStyle=TEXT_C; cx.font='9px JetBrains Mono,monospace'; cx.textAlign='center';
+  const labelStep = Math.max(1, Math.floor(candleData.length/8));
+  const tf = TIMEFRAMES[currentTF];
+  for (let i=0; i<candleData.length; i+=labelStep) {
+    const d = new Date(candleData[i].t);
+    let label;
+    if (currentTF==='1m'||currentTF==='5m'||currentTF==='15m'||currentTF==='30m') {
+      label = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    } else if (currentTF==='1h'||currentTF==='4h') {
+      label = (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+'h';
+    } else {
+      label = (d.getMonth()+1)+'/'+d.getDate()+'/'+(d.getFullYear()+'').slice(2);
+    }
+    cx.fillText(label, px(i), H-PAD_B+14);
+  }
+}
+
+// ── RSI Chart (Chart.js) ───────────────────────────────
+function drawRSI() {
+  const closes  = candleData.map(c=>c.c);
+  const rsiData = calcRSI(closes,14);
+  const labels  = candleData.map(c=>'');
+
+  const lastRsi = [...rsiData].reverse().find(v=>v!==null);
+  if (lastRsi!==null) {
     document.getElementById('rsi-value').textContent = lastRsi.toFixed(1);
     const sig = document.getElementById('rsi-signal');
-    if (lastRsi >= 70) { sig.textContent = '⚠ Overbought'; sig.style.color = '#ef4444'; }
-    else if (lastRsi <= 30) { sig.textContent = '⚠ Oversold'; sig.style.color = '#22c55e'; }
-    else { sig.textContent = 'Neutral'; sig.style.color = '#5a637a'; }
+    if (lastRsi>=70) { sig.textContent='⚠ Overbought'; sig.style.color='#ef4444'; }
+    else if (lastRsi<=30) { sig.textContent='⚠ Oversold'; sig.style.color='#22c55e'; }
+    else { sig.textContent='Neutral'; sig.style.color='#5a637a'; }
   }
+
+  if (rsiChartObj) {
+    rsiChartObj.data.labels = labels;
+    rsiChartObj.data.datasets[0].data = rsiData;
+    rsiChartObj.update('none');
+    return;
+  }
+
+  const rsiCtx = document.getElementById('rsi-canvas');
+  rsiChartObj = new Chart(rsiCtx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        data:rsiData,
+        borderColor:'rgba(99,102,241,0.9)',
+        borderWidth:1.5,
+        pointRadius:0,
+        tension:0.3,
+        spanGaps:false,
+        segment:{
+          borderColor: ctx => {
+            const v = ctx.p1.parsed.y;
+            if(v>=70) return 'rgba(239,68,68,0.9)';
+            if(v<=30) return 'rgba(34,197,94,0.9)';
+            return 'rgba(99,102,241,0.85)';
+          }
+        }
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:false,
+      plugins:{
+        legend:{display:false},
+        annotation:{annotations:{
+          ob:{type:'line',yMin:70,yMax:70,borderColor:'rgba(239,68,68,0.4)',borderWidth:1,borderDash:[4,4],label:{display:true,content:'70',position:'end',color:'rgba(239,68,68,0.7)',font:{size:8},backgroundColor:'transparent'}},
+          mid:{type:'line',yMin:50,yMax:50,borderColor:'rgba(255,255,255,0.06)',borderWidth:1,borderDash:[2,4]},
+          os:{type:'line',yMin:30,yMax:30,borderColor:'rgba(34,197,94,0.4)',borderWidth:1,borderDash:[4,4],label:{display:true,content:'30',position:'end',color:'rgba(34,197,94,0.7)',font:{size:8},backgroundColor:'transparent'}},
+        }},
+        tooltip:{backgroundColor:'#1a1d26',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#9099b0',bodyColor:'#e8eaf0',
+          callbacks:{label:ctx=>ctx.raw!==null?` RSI: ${ctx.raw}`:null}}
+      },
+      scales:{
+        x:{display:false},
+        y:{min:0,max:100,position:'right',
+          ticks:{color:'#5a637a',font:{size:8},stepSize:25},
+          grid:{color:'rgba(255,255,255,0.04)'}}
+      }
+    }
+  });
 }
 
+// ── Price display ──────────────────────────────────────
 function updatePriceDisplay() {
-  document.getElementById('current-price').textContent = currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const pct = (((currentPrice - basePrice) / basePrice) * 100).toFixed(2);
-  const el = document.getElementById('price-change');
-  el.textContent = (pct >= 0 ? '+' : '') + pct + '%';
-  el.style.color = pct >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('current-price').textContent = currentPrice.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const pct=(((currentPrice-basePrice)/basePrice)*100).toFixed(2);
+  const el=document.getElementById('price-change');
+  el.textContent=(pct>=0?'+':'')+pct+'%';
+  el.style.color=pct>=0?'var(--green)':'var(--red)';
 }
 
-// Tools
+// ── Canvas hover → OHLC readout ───────────────────────
+function setupHover() {
+  cc.addEventListener('mousemove', e => {
+    const rect = cc.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const PAD_L=8, PAD_R=62;
+    const chartW = cc.clientWidth - PAD_L - PAD_R;
+    const idx = Math.floor((x - PAD_L) / (chartW / candleData.length));
+    if (idx>=0 && idx<candleData.length) {
+      const c = candleData[idx];
+      const isBull = c.c>=c.o;
+      const col = isBull?'#22c55e':'#ef4444';
+      document.getElementById('ohlc-bar').innerHTML =
+        `O:<b>${c.o}</b> H:<b>${c.h}</b> L:<b>${c.l}</b> C:<b style="color:${col}">${c.c}</b>`;
+    }
+  });
+  cc.addEventListener('mouseleave', () => {
+    document.getElementById('ohlc-bar').innerHTML = '&nbsp;';
+  });
+}
+
+// ── Tools ──────────────────────────────────────────────
 function setTool(tool) {
   activeTool = tool;
-  document.getElementById('tool-fib').className   = 'tool-btn' + (tool === 'fib'   ? ' active-fib' : '');
-  document.getElementById('tool-sr').className    = 'tool-btn' + (tool === 'sr'    ? ' active-sr' : '');
-  document.getElementById('tool-trend').className = 'tool-btn' + (tool === 'trend' ? ' active-sr' : '');
+  document.getElementById('tool-fib').className   = 'tool-btn'+(tool==='fib'?' active-fib':'');
+  document.getElementById('tool-sr').className    = 'tool-btn'+(tool==='sr'?' active-sr':'');
+  document.getElementById('tool-trend').className = 'tool-btn'+(tool==='trend'?' active-sr':'');
 
-  if (tool === 'sr') {
+  if (tool==='fib') {
+    const slice = candleData.slice(-30);
+    const high = Math.max(...slice.map(c=>c.h));
+    const low  = Math.min(...slice.map(c=>c.l));
+    fibLines = [{high,low}];
+    document.getElementById('skill-tip').textContent = `Fib: swing low ${low.toFixed(2)} → high ${high.toFixed(2)}. Watch 0.382, 0.500, 0.618 for price reactions.`;
+  } else if (tool==='sr') {
     autoDrawSR();
-    document.getElementById('skill-tip').textContent = 'Support & Resistance lines drawn at recent swing highs and lows. Watch for price to bounce or break these levels.';
-  } else if (tool === 'fib') {
-    // Auto-draw Fib from recent swing high/low
-    const prices = candleData.slice(-30);
-    const high = Math.max(...prices.map(c => c.h));
-    const low  = Math.min(...prices.map(c => c.l));
-    fibLines = [{ high, low }];
-    refreshAnnotations();
-    document.getElementById('skill-tip').textContent = `Fib drawn from swing low ${low.toFixed(2)} to high ${high.toFixed(2)}. Key levels shown. Watch for price reaction at 0.382, 0.500, 0.618.`;
-  } else if (tool === 'trend') {
-    document.getElementById('skill-tip').textContent = 'Trend lines connect successive highs (downtrend) or lows (uptrend). A break of the trend line is a signal to watch.';
+    document.getElementById('skill-tip').textContent = 'S/R lines show recent swing highs and lows. Price often stalls, bounces, or breaks here.';
+  } else {
     autoDrawSR();
+    document.getElementById('skill-tip').textContent = 'Trend line: connects swing highs (downtrend) or swing lows (uptrend). A break signals a potential reversal.';
   }
+  drawChart();
 }
 
 function clearTools() {
-  fibLines = []; srLines = []; activeTool = null;
-  ['tool-fib','tool-sr','tool-trend'].forEach(id => document.getElementById(id).className = 'tool-btn');
-  document.getElementById('skill-tip').textContent = TIPS[tipIndex++ % TIPS.length];
-  refreshAnnotations();
+  fibLines=[]; srLines=[]; activeTool=null;
+  ['tool-fib','tool-sr','tool-trend'].forEach(id=>document.getElementById(id).className='tool-btn');
+  document.getElementById('skill-tip').textContent=TIPS[tipIndex++%TIPS.length];
+  drawChart();
 }
 
 function autoDrawSR() {
-  const prices = candleData.slice(-40);
-  const highs = prices.map(c => c.h), lows = prices.map(c => c.l);
-  const maxH = Math.max(...highs), minL = Math.min(...lows), mid = +((maxH + minL) / 2).toFixed(2);
+  const slice = candleData.slice(-40);
+  const maxH = Math.max(...slice.map(c=>c.h));
+  const minL = Math.min(...slice.map(c=>c.l));
+  const mid  = +((maxH+minL)/2).toFixed(2);
   srLines = [+maxH.toFixed(2), mid, +minL.toFixed(2)];
-  refreshAnnotations();
 }
 
-// Trading
+// ── Risk preview ───────────────────────────────────────
 function updateRiskPreview() {
-  const lot = parseFloat(document.getElementById('lot-size').value || 0.1);
-  const sl  = parseInt(document.getElementById('sl-pips').value || 20);
-  const tp  = parseInt(document.getElementById('tp-pips').value || 40);
-  const pip = 0.01, lotSz = 100;
-  const risk   = +(sl * pip * lot * lotSz).toFixed(2);
-  const reward = +(tp * pip * lot * lotSz).toFixed(2);
-  const rr     = (reward / risk).toFixed(1);
+  const lot = parseFloat(document.getElementById('lot-size').value||0.1);
+  const sl  = parseInt(document.getElementById('sl-pips').value||20);
+  const tp  = parseInt(document.getElementById('tp-pips').value||40);
+  const pip=0.01, lotSz=100;
+  const risk   = +(sl*pip*lot*lotSz).toFixed(2);
+  const reward = +(tp*pip*lot*lotSz).toFixed(2);
+  const rr     = (reward/risk).toFixed(1);
   document.getElementById('risk-preview').textContent = `Risk: $${risk}  Reward: $${reward}  R:R 1:${rr}`;
-  document.getElementById('risk-calc').innerHTML =
-    `Lot: ${lot}<br>Risk/trade: $${risk}<br>Reward: $${reward}<br>R:R Ratio: 1:${rr}`;
+  document.getElementById('risk-calc').innerHTML = `Lot: ${lot}<br>Risk: $${risk}<br>Reward: $${reward}<br>R:R: 1:${rr}`;
 }
 
+// ── Trading ────────────────────────────────────────────
 function placeTrade(dir) {
   if (openTrade) { alert('Close your existing trade first.'); return; }
   const lot = parseFloat(document.getElementById('lot-size').value);
   const slP = parseInt(document.getElementById('sl-pips').value);
   const tpP = parseInt(document.getElementById('tp-pips').value);
-  const pip = 0.01, lotSz = 100;
-  const entry = currentPrice;
-  const slPrice = dir === 'BUY' ? +(entry - slP * pip).toFixed(2) : +(entry + slP * pip).toFixed(2);
-  const tpPrice = dir === 'BUY' ? +(entry + tpP * pip).toFixed(2) : +(entry - tpP * pip).toFixed(2);
-  const risk   = +(slP * pip * lot * lotSz).toFixed(2);
-  const reward = +(tpP * pip * lot * lotSz).toFixed(2);
-
-  if (risk > balance * 0.5) { alert(`Risk $${risk} is too high for balance $${balance.toFixed(2)}. Reduce lot size.`); return; }
-
-  openTrade = { dir, entry, sl: slPrice, tp: tpPrice, lot, risk, reward, time: new Date().toLocaleTimeString() };
-  document.getElementById('close-btn-wrap').style.display = 'block';
-  refreshAnnotations();
+  const pip=0.01, lotSz=100;
+  const entry   = currentPrice;
+  const slPrice = dir==='BUY' ? +(entry-slP*pip).toFixed(2) : +(entry+slP*pip).toFixed(2);
+  const tpPrice = dir==='BUY' ? +(entry+tpP*pip).toFixed(2) : +(entry-tpP*pip).toFixed(2);
+  const risk    = +(slP*pip*lot*lotSz).toFixed(2);
+  const reward  = +(tpP*pip*lot*lotSz).toFixed(2);
+  if (risk > balance*0.5) { alert(`Risk $${risk} too high for balance $${balance.toFixed(2)}. Reduce lot size.`); return; }
+  openTrade = {dir,entry,sl:slPrice,tp:tpPrice,lot,risk,reward,time:new Date().toLocaleTimeString()};
+  document.getElementById('close-btn-wrap').style.display='block';
+  drawChart();
   updateOpenTradePnL();
-  document.getElementById('skill-tip').textContent = `${dir} @ ${entry.toFixed(2)} | SL: ${slPrice} | TP: ${tpPrice} | Risking $${risk} for $${reward}`;
+  document.getElementById('skill-tip').textContent = `${dir} @ ${entry.toFixed(2)} | SL: ${slPrice} | TP: ${tpPrice} | Risk $${risk} → Reward $${reward}`;
 }
 
 function updateOpenTradePnL() {
   if (!openTrade) return;
-  const pip = 0.01;
-  const pips = openTrade.dir === 'BUY'
-    ? (currentPrice - openTrade.entry) / pip
-    : (openTrade.entry - currentPrice) / pip;
-  const pnl = +(pips * pip * openTrade.lot * 100).toFixed(2);
+  const pip=0.01;
+  const pips = openTrade.dir==='BUY'
+    ? (currentPrice-openTrade.entry)/pip
+    : (openTrade.entry-currentPrice)/pip;
+  const pnl = +(pips*pip*openTrade.lot*100).toFixed(2);
   document.getElementById('open-trade').innerHTML =
     `<b style="color:${openTrade.dir==='BUY'?'var(--green)':'var(--red)'};">${openTrade.dir}</b> ${openTrade.lot} lot @ ${openTrade.entry.toFixed(2)}<br>` +
-    `Current: ${currentPrice.toFixed(2)}<br>` +
-    `P&amp;L: <span style="color:${pnl>=0?'var(--green)':'var(--red)'}; font-weight:600;">${pnl>=0?'+':''}$${pnl.toFixed(2)}</span>`;
+    `Now: ${currentPrice.toFixed(2)}<br>` +
+    `P&amp;L: <span style="color:${pnl>=0?'var(--green)':'var(--red)'};font-weight:600;">${pnl>=0?'+':''}$${pnl.toFixed(2)}</span>`;
 }
 
 function checkTpSl() {
   if (!openTrade) return;
-  const hit = openTrade.dir === 'BUY'
-    ? currentPrice >= openTrade.tp || currentPrice <= openTrade.sl
-    : currentPrice <= openTrade.tp || currentPrice >= openTrade.sl;
+  const hit = openTrade.dir==='BUY'
+    ? currentPrice>=openTrade.tp || currentPrice<=openTrade.sl
+    : currentPrice<=openTrade.tp || currentPrice>=openTrade.sl;
   if (!hit) return;
-  const won = openTrade.dir === 'BUY' ? currentPrice >= openTrade.tp : currentPrice <= openTrade.tp;
-  settleTrade(won ? openTrade.reward : -openTrade.risk, won ? '✓ TP Hit' : '✗ SL Hit');
+  const won = openTrade.dir==='BUY' ? currentPrice>=openTrade.tp : currentPrice<=openTrade.tp;
+  settleTrade(won?openTrade.reward:-openTrade.risk, won?'✓ TP Hit':'✗ SL Hit');
 }
 
 function closeTrade() {
   if (!openTrade) return;
-  const pip = 0.01;
-  const pips = openTrade.dir === 'BUY'
-    ? (currentPrice - openTrade.entry) / pip
-    : (openTrade.entry - currentPrice) / pip;
-  const pnl = +(pips * pip * openTrade.lot * 100).toFixed(2);
-  settleTrade(pnl, 'Manual Close');
+  const pip=0.01;
+  const pips = openTrade.dir==='BUY'
+    ? (currentPrice-openTrade.entry)/pip
+    : (openTrade.entry-currentPrice)/pip;
+  const pnl = +(pips*pip*openTrade.lot*100).toFixed(2);
+  settleTrade(pnl,'Manual Close');
 }
 
 function settleTrade(pnl, reason) {
-  const entry = openTrade ? openTrade.entry : currentPrice;
-  const dir   = openTrade ? openTrade.dir   : '—';
-  balance = +(balance + pnl).toFixed(2);
-  tradeHistory.unshift({ time: new Date().toLocaleTimeString(), dir, pnl, reason, entry: entry.toFixed(2), exit: currentPrice.toFixed(2) });
-  openTrade = null;
-  document.getElementById('close-btn-wrap').style.display = 'none';
-  document.getElementById('open-trade').textContent = 'No open trade';
+  const entry=openTrade?openTrade.entry:currentPrice;
+  const dir=openTrade?openTrade.dir:'—';
+  balance=+(balance+pnl).toFixed(2);
+  tradeHistory.unshift({time:new Date().toLocaleTimeString(),dir,pnl,reason,entry:entry.toFixed(2),exit:currentPrice.toFixed(2)});
+  openTrade=null;
+  document.getElementById('close-btn-wrap').style.display='none';
+  document.getElementById('open-trade').textContent='No open trade';
   updateBalanceDisplay();
   updateTradeLog();
-  refreshAnnotations();
+  drawChart();
   checkLevelProgress();
 }
 
 function updateBalanceDisplay() {
-  document.getElementById('balance').textContent = fmt(balance);
-  const totalPnl = balance - baseBalance;
-  const el = document.getElementById('pnl');
-  el.textContent = fmtP(totalPnl);
-  el.style.color = totalPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('balance').textContent=fmt(balance);
+  const totalPnl=balance-baseBalance;
+  const el=document.getElementById('pnl');
+  el.textContent=fmtP(totalPnl);
+  el.style.color=totalPnl>=0?'var(--green)':'var(--red)';
   updateProgress();
 }
 
 function updateProgress() {
-  const lvl = LEVELS[currentLevel];
-  const needed   = lvl.target - lvl.startBalance;
-  const achieved = balance - lvl.startBalance;
-  const pct = Math.max(0, Math.min(100, (achieved / needed) * 100));
-  document.getElementById('progress-bar').style.width = pct.toFixed(1) + '%';
-  document.getElementById('progress-text').textContent = `$${Math.max(0, achieved).toFixed(0)} of $${needed} to go`;
+  const lvl=LEVELS[currentLevel];
+  const needed=lvl.target-lvl.startBalance;
+  const achieved=balance-lvl.startBalance;
+  const pct=Math.max(0,Math.min(100,(achieved/needed)*100));
+  document.getElementById('progress-bar').style.width=pct.toFixed(1)+'%';
+  document.getElementById('progress-text').textContent=`$${Math.max(0,achieved).toFixed(0)} of $${needed} to go`;
   buildLevelsList();
 }
 
 function checkLevelProgress() {
-  const lvl = LEVELS[currentLevel];
-  if (balance >= lvl.target) {
-    document.getElementById('modal-icon').textContent = '🏆';
-    document.getElementById('modal-title').textContent = `Level ${lvl.level} Complete!`;
-    const nextLvl = LEVELS[Math.min(currentLevel + 1, LEVELS.length - 1)];
-    document.getElementById('modal-body').textContent = `You grew $${lvl.startBalance.toLocaleString()} → $${balance.toFixed(2)}! Next up: Level ${nextLvl.level} starting with $${nextLvl.startBalance.toLocaleString()}.`;
-    document.getElementById('modal-btn').textContent = currentLevel < LEVELS.length - 1 ? 'Next Level →' : 'Play Again';
-    document.getElementById('level-modal').style.display = 'flex';
-  } else if (balance < lvl.startBalance * 0.5) {
-    document.getElementById('modal-icon').textContent = '💔';
-    document.getElementById('modal-title').textContent = 'Account Blown';
-    document.getElementById('modal-body').textContent = `You lost too much on Level ${lvl.level}. Study your risk management — never risk more than 2% per trade. Restarting with $${lvl.startBalance.toLocaleString()}.`;
-    document.getElementById('modal-btn').textContent = 'Try Again';
-    document.getElementById('level-modal').style.display = 'flex';
+  const lvl=LEVELS[currentLevel];
+  if (balance>=lvl.target) {
+    document.getElementById('modal-icon').textContent='🏆';
+    document.getElementById('modal-title').textContent=`Level ${lvl.level} Complete!`;
+    const next=LEVELS[Math.min(currentLevel+1,LEVELS.length-1)];
+    document.getElementById('modal-body').textContent=`You grew $${lvl.startBalance.toLocaleString()} → $${balance.toFixed(2)}! Next: Level ${next.level} with $${next.startBalance.toLocaleString()}.`;
+    document.getElementById('modal-btn').textContent=currentLevel<LEVELS.length-1?'Next Level →':'Play Again';
+    document.getElementById('level-modal').style.display='flex';
+  } else if (balance<lvl.startBalance*0.5) {
+    document.getElementById('modal-icon').textContent='💔';
+    document.getElementById('modal-title').textContent='Account Blown';
+    document.getElementById('modal-body').textContent=`Lost too much on Level ${lvl.level}. Never risk more than 2% per trade. Restarting with $${lvl.startBalance.toLocaleString()}.`;
+    document.getElementById('modal-btn').textContent='Try Again';
+    document.getElementById('level-modal').style.display='flex';
   }
 }
 
 function nextLevel() {
-  document.getElementById('level-modal').style.display = 'none';
-  if (balance >= LEVELS[currentLevel].target && currentLevel < LEVELS.length - 1) {
-    currentLevel++;
-  }
-  balance = LEVELS[currentLevel].startBalance;
-  baseBalance = balance;
-  document.getElementById('level-badge').textContent = 'Level ' + LEVELS[currentLevel].level;
-  document.getElementById('target-display').textContent = '$' + LEVELS[currentLevel].target.toLocaleString() + '.00';
+  document.getElementById('level-modal').style.display='none';
+  if (balance>=LEVELS[currentLevel].target && currentLevel<LEVELS.length-1) currentLevel++;
+  balance=LEVELS[currentLevel].startBalance;
+  baseBalance=balance;
+  document.getElementById('level-badge').textContent='Level '+LEVELS[currentLevel].level;
+  document.getElementById('target-display').textContent='$'+LEVELS[currentLevel].target.toLocaleString()+'.00';
   updateBalanceDisplay();
-  tradeHistory = [];
-  updateTradeLog();
-  basePrice = currentPrice;
-  buildChart();
+  tradeHistory=[]; updateTradeLog();
+  basePrice=currentPrice;
+  initAllTF();
+  drawChart(); drawRSI();
 }
 
 function updateTradeLog() {
-  const el = document.getElementById('trade-log');
-  if (!tradeHistory.length) { el.innerHTML = '<div style="color:var(--text3); font-size:11px;">No trades yet.</div>'; return; }
-  el.innerHTML = tradeHistory.slice(0, 20).map(t =>
+  const el=document.getElementById('trade-log');
+  if (!tradeHistory.length) { el.innerHTML='<div style="color:var(--text3);font-size:11px;">No trades yet.</div>'; return; }
+  el.innerHTML=tradeHistory.slice(0,20).map(t=>
     `<div class="history-row">
       <span style="color:var(--text3);">${t.time}</span>
       <span class="dir-tag ${t.dir==='BUY'?'dir-buy':'dir-sell'}">${t.dir}</span>
-      <span>${t.entry} → ${t.exit}</span>
-      <span style="color:${t.pnl>=0?'var(--green)':'var(--red)'}; font-weight:600;">${t.pnl>=0?'+':''}$${t.pnl.toFixed(2)}</span>
+      <span>${t.entry}→${t.exit}</span>
+      <span style="color:${t.pnl>=0?'var(--green)':'var(--red)'};font-weight:600;">${t.pnl>=0?'+':''}$${t.pnl.toFixed(2)}</span>
       <span style="color:var(--text3);">${t.reason}</span>
     </div>`
   ).join('');
 }
 
 function buildLevelsList() {
-  document.getElementById('levels-list').innerHTML = LEVELS.map((l, i) => {
-    const cls = i === currentLevel ? 'active' : i < currentLevel ? 'done' : 'locked';
-    const icon = i < currentLevel ? '✓ ' : i === currentLevel ? '► ' : '  ';
+  document.getElementById('levels-list').innerHTML=LEVELS.map((l,i)=>{
+    const cls=i===currentLevel?'active':i<currentLevel?'done':'locked';
+    const icon=i<currentLevel?'✓ ':i===currentLevel?'► ':'  ';
     return `<div class="level-item ${cls}">${icon}${l.label}</div>`;
   }).join('');
 }
 
-// Init
+// ── Init ───────────────────────────────────────────────
 (function init() {
+  cc = document.getElementById('candle-canvas');
+  cx = cc.getContext('2d');
+
+  initAllTF();
   buildLevelsList();
-  buildChart();
   updateProgress();
   updateBalanceDisplay();
   updateRiskPreview();
+  drawChart();
+  drawRSI();
+  setupHover();
 
-  setInterval(addNewCandle, 2000);
-  setInterval(() => {
-    document.getElementById('skill-tip').textContent = TIPS[tipIndex++ % TIPS.length];
+  // redraw on resize
+  window.addEventListener('resize', () => { drawChart(); });
+
+  // live ticks
+  tickTimer = setInterval(tick, TIMEFRAMES[currentTF].candleMs);
+
+  // rotate tips
+  setInterval(()=>{
+    document.getElementById('skill-tip').textContent=TIPS[tipIndex++%TIPS.length];
   }, 14000);
 
-  ['lot-size','sl-pips','tp-pips'].forEach(id => {
+  ['lot-size','sl-pips','tp-pips'].forEach(id=>{
     document.getElementById(id).addEventListener('input', updateRiskPreview);
   });
 })();
